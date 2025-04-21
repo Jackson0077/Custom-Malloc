@@ -27,44 +27,6 @@ static int max_heap          = 0;
 char used = 'A';
 int reset = 0;
 
-// int atexit_registered = 0;
-// int num_mallocs       = 0;
-// int num_frees         = 0;
-// int num_reuses        = 0;
-// int num_grows         = 0;
-// int num_splits        = 0;
-// int num_coalesces     = 0;
-// int num_blocks        = 0;
-// int num_requested     = 0;
-// int max_heap          = 0;
-
-
-// void resetStatistics(void) {
-//     num_mallocs = 0;
-//     num_frees = 0;
-//     num_reuses = 0;
-//     num_grows = 0;
-//     num_splits = 0;
-//     num_coalesces = 0;
-//     num_blocks = 0;
-//     num_requested = 0;
-//     max_heap = 0;
-// }
-
-// void initStatistics(void) {
-//     // Initialize statistics
-//     num_mallocs = 0;
-//     num_frees = 0;
-//     num_reuses = 0;
-//     num_grows = 0;
-//     num_splits = 0;
-//     num_coalesces = 0;
-//     num_blocks = 0;
-//     num_requested = 0;
-//     max_heap = 0;
-//     printf("Statistics initialized.\n");
-// }
-
 /*
  * \brief printStatistics
  *
@@ -86,21 +48,18 @@ void printStatistics(void) {
 
 /* Structure for a block of memory */
 struct _block {
-    size_t size;         /* Size of the allocated block of memory in bytes */
-    struct _block *next; /* Pointer to the next block of allocated memory */
-    struct _block *prev; /* Pointer to the previous block of allocated memory */
-    bool free;           /* Is this block free? */
-    char padding[3];     /* Padding for alignment */
+    size_t size;         // size of the allocated block of memory in bytes
+    struct _block *next; // pointer to the next block of allocated memory
+    struct _block *prev; // pointer to the previous block of allocated memory
+    bool free;           // is this block free?
+    char padding[3];     // padding for alignment
 };
 
 /* Pointer to the head of the heap list */
 struct _block *heapList = NULL;
 
-/*
- * \brief findFreeBlock
- *
- * Finds a free block of heap memory based on the allocation strategy.
- */
+
+// Finds a free block of heap memory based on the allocation strategy.
 struct _block *findFreeBlock(struct _block **last, size_t size) {
     struct _block *curr = heapList;
 
@@ -112,7 +71,7 @@ struct _block *findFreeBlock(struct _block **last, size_t size) {
         curr = curr->next;
     }
     if (curr) {
-        num_reuses++;  // Increment reuse counter when a block is reused
+        num_reuses++;  // increment reuse counter when a block is reused
     }
 #endif
 
@@ -131,7 +90,7 @@ struct _block *findFreeBlock(struct _block **last, size_t size) {
     }
     curr = best;
     if (curr) {
-        num_reuses++;  // Increment reuse counter when a block is reused
+        num_reuses++;  // increment reuse counter when a block is reused
     }
 #endif
 
@@ -160,36 +119,31 @@ struct _block *findFreeBlock(struct _block **last, size_t size) {
     static struct _block *last_allocated = NULL;
 
     if (!heapList) {
-        // If the heapList is uninitialized, no free blocks exist yet
+        // if the heapList is uninitialized, no free blocks exist yet
         return NULL;
     }
 
     struct _block *start = last_allocated ? last_allocated->next : heapList;
-    *last = NULL; // Ensure last is initialized properly
+    *last = NULL; 
 
-    // Perform a circular search for a free block
+    // search for a free block
     do {
         if (start->free && start->size && start->size >= size) {
-            last_allocated = start; // Update last_allocated for future allocations
+            last_allocated = start; // update last_allocated for future allocations
             num_reuses++;
             return start;
         }
-        start = start->next ? start->next : heapList; // Wrap around to the beginning if needed
+        start = start->next ? start->next : heapList; // wrap around to the beginning if needed
     } while (start != (last_allocated ? last_allocated->next : heapList));
 
-    // If no suitable block was found, return NULL
+    // if no suitable block was found, return NULL
     return NULL;
 #endif
 
     return curr;
 }
 
-
-/*
- * \brief growHeap
- *
- * Requests additional heap memory from the OS.
- */
+// Requests additional heap memory from the OS.
 struct _block *growHeap(struct _block *last, size_t size) {
     struct _block *curr = (struct _block *)sbrk(0);
     struct _block *prev = (struct _block *)sbrk(sizeof(struct _block) + size);
@@ -200,14 +154,14 @@ struct _block *growHeap(struct _block *last, size_t size) {
         return NULL; // sbrk failed
     }
 
-    // Initialize the new block
+    // initialize the new block
     curr->size = size;
     curr->free = false;
     curr->next = NULL;
     curr->prev = last;
 
     if (last) {
-        last->next = curr; // Link the new block to the last block
+        last->next = curr; // link the new block to the last block
     }
 
     num_grows++;
@@ -221,7 +175,7 @@ struct _block *growHeap(struct _block *last, size_t size) {
 /*
  * \brief malloc
  *
- * Allocates memory on the heap.
+ * allocates memory on the heap.
  */
 void *malloc(size_t size) {
 
@@ -240,14 +194,14 @@ void *malloc(size_t size) {
     struct _block *next = NULL;
 
     if (heapList == NULL) {
-        // Initialize heapList on first allocation
+        // initialize heapList on first allocation
         next = growHeap(NULL, size);
         heapList = next;
         if (next) {
             num_blocks++;
         }
     } else {
-        // Find a free block or grow the heap
+        // find a free block or grow the heap
         next = findFreeBlock(&last, size);
         if (next == NULL) {
             next = growHeap(last, size);
@@ -255,10 +209,10 @@ void *malloc(size_t size) {
     }
 
     if (next == NULL) {
-        return NULL; // Allocation failed
+        return NULL;
     }
 
-    // Split the block if there's enough space for a new block
+    // split the block if there's enough space for a new block
     if (next->size >= size + sizeof(struct _block) + 4) {
         struct _block *split_block = (struct _block *)((char *)BLOCK_DATA(next) + size);
         split_block->size = next->size - size - sizeof(struct _block);
@@ -282,22 +236,19 @@ void *malloc(size_t size) {
     return BLOCK_DATA(next);
 }
 
-/*
- * \brief free
- *
- * Frees the allocated memory block and coalesces adjacent free blocks.
- */
+
+// frees the allocated memory block and coalesces adjacent free blocks.
 void free(void *ptr) {
     if (ptr == NULL) {
         return;
     }
 
     struct _block *curr = BLOCK_HEADER(ptr);
-    assert(curr->free == 0); // Ensure the block is not already freed
+    assert(curr->free == 0); // ensure block is not already freed
     curr->free = true;
     num_frees++;
 
-    // Coalesce with next block if it's free
+    // coalesce with next block if it's free
     if (curr->next && curr->next->free) {
         curr->size += curr->next->size + sizeof(struct _block);
         struct _block *next_next = curr->next->next;
@@ -308,7 +259,7 @@ void free(void *ptr) {
         num_coalesces++;
     }
 
-    // Coalesce with previous block if it's free
+    // coalesce with previous block if it's free
     if (curr->prev && curr->prev->free) {
         struct _block *prev_block = curr->prev;
         prev_block->size += curr->size + sizeof(struct _block);
